@@ -1,0 +1,26 @@
+{
+  "https://pan.baidu.com/s/1wBd0gqPnNvM5daMZoMApFQ": {
+    "title": "FCPX插件-20组摄像机摇晃缩放移动切换转场过渡预设",
+    "status": "success",
+    "message": "OK",
+    "timestamp": "2026-05-06 13:42:46"
+  },
+  "https://pan.baidu.com/s/1NNDT9tp7nVxoLwlHYtsaKA": {
+    "title": "FCPX插件-20组动感棱镜光晕炫光闪烁转场动画预设",
+    "status": "success",
+    "message": "OK",
+    "timestamp": "2026-05-06 13:42:59"
+  },
+  "https://pan.baidu.com/s/1ea5HTKgUPGLd_h2Jdq0geQ": {
+    "title": "FCPX插件-100个光效闪烁摄像机快速移动视频转场预设",
+    "status": "failed",
+    "message": "Page.query_selector: Execution context was destroy",
+    "timestamp": "2026-05-06 13:44:07"
+  },
+  "https://pan.baidu.com/s/1BSw_SFJfMUIgJTvrZAz8_Q": {
+    "title": "FCPX插件-40种摄像机急速摇晃移动擦除视频转场预设",
+    "status": "failed",
+    "message": "Page.query_selector: Target page, context or brows",
+    "timestamp": "2026-05-06 13:44:13"
+  }
+}

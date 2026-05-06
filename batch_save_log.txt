@@ -1,0 +1,2 @@
+Found 1 tabs
+batch_save_chrome.scpt:206:243: execution error: “Google Chrome”遇到一个错误：不能将“window 1 of window 1”设置为“1”。 (-10006)

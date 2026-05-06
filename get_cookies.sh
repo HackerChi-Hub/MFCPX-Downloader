@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo "=========================================="
+echo "   获取百度网盘完整Cookies"
+echo "=========================================="
+echo ""
+echo "请按以下步骤操作："
+echo ""
+echo "1. 在Chrome中打开: https://pan.baidu.com"
+echo "2. 确保已登录"
+echo "3. 按F12打开开发者工具"
+echo "4. 切换到 Network 标签"
+echo "5. 刷新页面 (Cmd+R)"
+echo "6. 点击第一个请求（通常是 pan.baidu.com）"
+echo "7. 在右侧找到 Request Headers"
+echo "8. 找到 Cookie: 字段"
+echo "9. 复制整个Cookie值（很长的字符串）"
+echo ""
+echo "Cookie格式类似："
+echo 'BDUSS=xxxxx; BAIDUID=yyyyyy; STOKEN=zzzzz; ...'
+echo ""
+echo "复制后粘贴到这里"
+echo ""

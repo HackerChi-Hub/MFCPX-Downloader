@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百度网盘批量保存控制器</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .controls { margin: 20px 0; padding: 15px; background: #e3f2fd; border-radius: 5px; }
+        .status { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        .link-item { margin: 8px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; display: flex; align-items: center; gap: 10px; }
+        .link-item.pending { background: #fff3e0; }
+        .link-item.success { background: #e8f5e9; }
+        .link-item.failed { background: #ffebee; }
+        .link-item.processing { background: #e3f2fd; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #1976d2; color: white; }
+        .btn-success { background: #388e3c; color: white; }
+        .btn-warning { background: #f57c00; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .progress { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; background: #1976d2; transition: width 0.3s; }
+        .info { display: flex; justify-content: space-between; align-items: center; }
+        .current-link { font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 百度网盘批量保存控制器</h1>
+        
+        <div class="controls">
+            <div class="info">
+                <button class="btn btn-primary" onclick="startBatch()">▶️ 开始批量保存</button>
+                <button class="btn btn-warning" onclick="pauseBatch()">⏸️ 暂停</button>
+                <button class="btn btn-success" onclick="resetAll()">🔄 重置</button>
+                <span id="status">准备就绪</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div id="stats">总计: 0 | 成功: 0 | 失败: 0 | 待处理: 0</div>
+        </div>
+        
+        <div id="linksContainer"></div>
+    </div>
+
+    <script>
+        const links = JSON.parse(`[{"title": "FCPX插件-20组摄像机摇晃缩放移动切换转场过渡预设", "url": "https://pan.baidu.com/s/1wBd0gqPnNvM5daMZoMApFQ?pwd=b47f"}, {"title": "FCPX插件-20组动感棱镜光晕炫光闪烁转场动画预设", "url": "https://pan.baidu.com/s/1NNDT9tp7nVxoLwlHYtsaKA?pwd=re3m"}, {"title": "FCPX插件-100个光效闪烁摄像机快速移动视频转场预设", "url": "https://pan.baidu.com/s/1ea5HTKgUPGLd_h2Jdq0geQ?pwd=6688"}, {"title": "FCPX插件-40种摄像机急速摇晃移动擦除视频转场预设", "url": "https://pan.baidu.com/s/1BSw_SFJfMUIgJTvrZAz8_Q?pwd=evsr"}, {"title": "FCPX插件-9组竖屏电影胶片灼烧闪烁刮痕视频转场预设", "url": "https://pan.baidu.com/s/1ts-fZXm0h2MfEoV5fWq_TQ?pwd=q4pi"}, {"title": "FCPX插件-11个能量电流闪电雷击特效视频转场预设", "url": "https://pan.baidu.com/s/1v_XT_5EZEINDAJhwczddKg?pwd=e79n"}, {"title": "FCPX插件-40种流畅自然透视风格平移拉伸视频转场预设", "url": "https://pan.baidu.com/s/1ZjxuTcwqUccBZ_EkhR0OiQ?pwd=bruz"}, {"title": "FCPX插件-100组电影级镜头光晕光效视频转场过渡预设", "url": "https://pan.baidu.com/s/10U7dtFwaRHPkqOGShVGFbA?pwd=nwg7"}, {"title": "FCPX插件-20组唯美漂亮镜头光效竖屏转场动画预设", "url": "https://pan.baidu.com/s/1TwIm4gvNVK1w7wUEDGKXpw?pwd=p598"}, {"title": "FCPX插件-24个真实镜头光效视频过渡转场预设", "url": "https://pan.baidu.com/s/1EX2TFHIkFGLfMyUA-0n76Q?pwd=b92w"}, {"title": "FCPX插件：调节层调整层插件 Final Cut Pro X", "url": "https://pan.baidu.com/s/1TvN-AVdnlb0Qs_IXneCX2g?pwd=jfhu"}, {"title": "FCPX插件：人像磨皮润肤美颜视频插件 Beauty Box 4.2.3", "url": "https://pan.baidu.com/s/1qc3pVwuy6ih6nn5sQ8gk9g"}, {"title": "FCPX插件-14组简洁打字机文字标题输入动画预设", "url": "https://pan.baidu.com/s/1KIOgT58NFL4XemvSrqrdtw?pwd=htuk"}, {"title": "FCPX插件-20组简单实用文字标题缓入缓出动画", "url": "https://pan.baidu.com/s/1-Q7JNsXvBBlnvyH-NFZFmg?pwd=bxjh"}, {"title": "FCPX插件-视觉特效和转场BCC插件 Continuum 2026 v19.0.0", "url": "https://pan.baidu.com/s/1VJiLfd8i9-w-gVaJPKyqyw?pwd=envw"}, {"title": "FCPX插件-50组现代时尚高质量动态文字标题字幕条动画", "url": "https://pan.baidu.com/s/1hweyYt6OExPxw3p21v9bxg?pwd=i9ws"}, {"title": "FCPX插件-像素拉伸撕裂分离特效 Pixel Sorter V4.2.4", "url": "https://pan.baidu.com/s/1AZVxtRzpZTuJOJ1wbbpqKQ?pwd=gmd5"}, {"title": "FCPX插件-专业摄像机运动缩放变焦控制工具 Pro Zooms V4.1.1", "url": "https://pan.baidu.com/s/1z9zYzdEXaXHgUCfRVT51Sw?pwd=icru"}, {"title": "FCPX插件-复古电影胶片模拟仿真视觉特效 EMUL8 v2.0", "url": "https://pan.baidu.com/s/1BBOww55rA_3Le2id0sWl8Q?pwd=vdtw"}, {"title": "FCPX插件-复古电影胶片模拟仿真视觉特效 EMUL8 v1.1", "url": "https://pan.baidu.com/s/16PB8QvEBUtc7GIeyFtSfzA?pwd=6688"}, {"title": "FCPX电影胶片模拟视频调色插件 Dehancer Pro v7.4.0", "url": "https://pan.baidu.com/s/1jbmY9LR49TbIh7IKSbUiEQ?pwd=ap4x"}, {"title": "FCPX插件-摄像机色彩空间匹配调色插件 CineMatch 1.2.2a", "url": "https://pan.baidu.com/s/1C4CHwBpxpme1eUMTUHCTOA?pwd=yhia"}, {"title": "FCPX插件-数字转胶片调色插件 FilmConvert Nitrate v3.51", "url": "https://pan.baidu.com/s/1Ja0e7g6RVqAXlp-wBcoDIg?pwd=xi2z"}, {"title": "中文版FCPX插件-专业视频分级调色插件 Color Finale Pro v2.9.1 原生支持M芯片", "url": "https://pan.baidu.com/s/1Jini6dWRnWUqVBAZ1fvDMg?pwd=aa6m"}, {"title": "FCPX插件-专业高级视觉特效和转场BCC插件 Continuum 2024 v17.0.3", "url": "https://pan.baidu.com/s/1LnhZi4JjNJK-OuLui4izcA?pwd=tbx6"}, {"title": "FCPX插件-8个简约透明玻璃质感弹窗小控件元素效果动画", "url": "https://pan.baidu.com/s/1QhUnQ26Kt5zBUgkVJW-pdw?pwd=6688"}, {"title": "FCPX插件-9个现代二维码展示小弹窗进入退出动画", "url": "https://pan.baidu.com/s/1lYTMZdcZRyNy-RH-sYCOuw?pwd=6688"}, {"title": "FCPX插件-6组复古老电视机场景图像显示动画 Retro TV in Dark Room", "url": "https://pan.baidu.com/s/1ylcfOIr4y1-lKomvfUtCCg?pwd=tuic"}, {"title": "FCPX插件-2143个名胜建筑食物蔬菜动物生活交通物品贴纸动画 Cutout Craft", "url": "https://pan.baidu.com/s/1hKAw7DhKyjuTe3gYX_yHcA?pwd=9vd3"}, {"title": "FCPX插件-16组霓虹发光图形元素动画 LGBTQ Pride Neon Elements", "url": "https://pan.baidu.com/s/18TSJihE2k1MroHbXQH2e1Q?pwd=iow0"}, {"title": "FCPX插件-82个音频元素信息图表图形动画 Infographic Elements Audio Motion", "url": "https://pan.baidu.com/s/1SJBLQxlHr-3oQExqOx3z0A?pwd=ehgj"}, {"title": "FCPX模板-抽象文字标题图文快闪介绍宣传动画", "url": "https://pan.baidu.com/s/14wxF0CsmrnHJxQRiB38htw?pwd=fryx"}, {"title": "FCPX插件-现代时尚动感节奏快闪图文介绍竖屏动画片头模板+原版音乐", "url": "https://pan.baidu.com/s/14ihKqnvqDzJN_Tl00VFj0w?pwd=p4kb"}, {"title": "FCPX模板-浪漫爱情甜蜜回忆照片电子相册展示动画片头+背景音乐", "url": "https://pan.baidu.com/s/1SZGX7jY_RbqCIKA-EfjRdg?pwd=ubsk"}, {"title": "FCPX模板-现代动感快闪切换展示片头动画 Typo Opener", "url": "https://pan.baidu.com/s/1tdTMMHD98wh8XO_jScx_Wg?pwd=j2z3"}, {"title": "FCPX模板-褶皱纸张元素定格动画图文快闪开场片头+原版音乐", "url": "https://pan.baidu.com/s/17rUY-M64niJADFMspxk4Jw?pwd=yqoh"}, {"title": "FCPX模板-公司企业宣传展示介绍图形包装 Corporate", "url": "https://pan.baidu.com/s/1tjHGR106gjXStvipz8Q40w?pwd=6688"}, {"title": "音频降噪去杂音回响修复增强FCPX/AU/PR/达芬奇插件 CrumplePop 2023 Mac苹果版", "url": "https://pan.baidu.com/s/1QVm5kICHBppu9S3gYaCRmQ?pwd=i08d"}, {"title": "将 Red 摄像机素材导入FCPX的插件 RED Apple Workflow Release v22.0.0", "url": "https://pan.baidu.com/s/19vEq1yhkCRybg5CC-ZyFGA?pwd=fmqa"}, {"title": "FCPX插件：GoPro 鱼眼广角变形镜头修正制作插件 Fisheye Fixer V2", "url": "https://pan.baidu.com/s/1qzXAjl3_WbKBg-oVOiRmDA?pwd=s1ak"}, {"title": "FCPX插件-几百种视觉特效和转场BCC插件包Boris Continuum 2019 v12.0.4", "url": "https://pan.baidu.com/s/1CjFgzY7lHgyzQvjRELN2Ew?pwd=f579"}, {"title": "FCPX插件-红巨人抠像套装 Red Giant Keying Suite 11.1.11", "url": "https://pan.baidu.com/s/1Cn8wVj-MwgHC6HelJI6bwg?pwd=px5x"}, {"title": "FCPX插件-几百种视觉特效和转场BCC插件包Boris Continuum Complete 2019 v12.0.3", "url": "https://pan.baidu.com/s/1DyIpNwrGUsIt1BJcfS_P1Q?pwd=78wf"}, {"title": "FCPX插件-几百种视觉特效和转场BCC插件包Boris Continuum Complete 2019 v12.0.1", "url": "https://pan.baidu.com/s/1LocMAfoHS04qRJtTbrLlFQ"}, {"title": "FCPX插件+Motion模板-大气浩瀚宇宙地球行星文字标题动画展示 Earth Planet Titles", "url": "https://pan.baidu.com/s/10D8aBOnvv_1lEKC9c_XwpA"}, {"title": "Apple Motion模板-现代流行彩色图形立体化拖尾效果图文介绍展示 Extrude", "url": "https://pan.baidu.com/s/1hp_ntdacNUTTky-lXVNKaw"}, {"title": "Apple Motion模板-时尚动感复古电视机图文介绍动画展示 Wonder Television", "url": "https://pan.baidu.com/s/1kN5hZl-1ShewPWA1gHo6WQ"}, {"title": "FCPX插件+Apple Motion模板：夏天动感时尚图文展示包装开场Summer Slideshow Opener", "url": "https://pan.baidu.com/s/1_bb3YKeByJlZpLgaDG9QKw?pwd=f1lj"}, {"title": "Apple Motion模板-三维摄像机镜头旋转LOGO标题展示片头 Camera Logo", "url": "https://pan.baidu.com/s/1AhcaXEWptFT26E3iQL3u6A?pwd=122q"}, {"title": "FCPX插件+Apple Motion模板：时尚动感节奏图文快闪片头 Bold Typo Opener", "url": "https://pan.baidu.com/s/1x2CpDTc57FjnxZShPIoogA?pwd=jpmv"}, {"title": "FCPX模板插件+Apple Motion模板：浪漫唯美婚礼粒子水墨遮罩照片相册片头", "url": "https://pan.baidu.com/s/1IkAUV-KIkb-RoHIqDqKroA?pwd=m3ih"}, {"title": "Apple Motion模板-动感画面干扰切割图文展示片头 Dynamic Slideshow", "url": "https://pan.baidu.com/s/1Rhj7IS6uUC3HptXfOT9nug?pwd=8b6z"}, {"title": "Apple Motion模板-画面切割图文展示片头开场 Elegant Opener", "url": "https://pan.baidu.com/s/1Z1fsygi5-2ofnolvTWkiFA?pwd=3rob"}, {"title": "FCPX插件+Apple Motion模板：大气震撼RGB色彩分离图像文字宣传片头 Cinematic Opener", "url": "https://pan.baidu.com/s/1mvme7IAdD38jhcQuED2ARQ?pwd=efun"}, {"title": "Apple Motion模板-卡通可爱花丛图文展示开场 Easter Special Promo", "url": "https://pan.baidu.com/s/1XyTmpYQ7fSrQOgFhKZODPg?pwd=pe3b"}, {"title": "FCPX插件+Apple Motion模板-手写文字生日祝福片头Birthday", "url": "https://pan.baidu.com/s/1roJc3IhKpccBBbdShzWbVA?pwd=495u"}, {"title": "FCPX插件+Apple Motion模板-图片快速切割推动展示Simple Slideshow", "url": "https://pan.baidu.com/s/16Qa7cWn0Fdld-S88WYtfsg?pwd=luu3"}, {"title": "Apple Motion模板-大气史诗震撼粒子文字图片宣传片头 Action Movie Trailer", "url": "https://pan.baidu.com/s/1IN5WVoJENNlrpEWcJVeSOg?pwd=uaes"}, {"title": "Apple Motion模板-沉闷悬疑侦探电影黑名单片头 Blacklist", "url": "https://pan.baidu.com/s/1a7pNuBjM7IRpHJetkLVwrg?pwd=ebt8"}, {"title": "50个有机金色耀斑光效动画4K视频素材 Organic Flare Pack", "url": "https://pan.baidu.com/s/1b_r3nnxTd5ZONh-4LOnJsA?pwd=6688"}, {"title": "120个35mm电影胶片刮痕灼烧噪点颗粒纹理4K视频LUTs调色预设音效素材", "url": "https://pan.baidu.com/s/1HdErvMUC8hRqlgghNhbQGA?pwd=aufq"}, {"title": "26个梦幻真实镜头有机耀斑光效叠加动画4K视频素材 Organic Flares 2", "url": "https://pan.baidu.com/s/1IEkJZfKucJV4FQIsgJjNkQ?pwd=9nw2"}, {"title": "视频素材-100个创意车辆树木路牌建筑墙体移动遮挡无缝转场动画 (有透明通道+音效)", "url": "https://pan.baidu.com/s/1lQ_SYWTDK1FaCalUNQ2LuA?pwd=v8ip"}, {"title": "视频素材-500个手绘卡通图形贴纸动画 Animated Stickers Pack", "url": "https://pan.baidu.com/s/1yuOdf0VB6D6jmf_GrSyeDQ?pwd=ga2v"}, {"title": "36个炮弹导弹攻击发射爆炸视觉特效动画4K视频素材(有透明通道) Missiles", "url": "https://pan.baidu.com/s/1_C042X25X1PwYyxPcppFCw?pwd=m5zg"}, {"title": "65个复古老式胶片污渍灼烧刮痕纹理4K视频素材", "url": "https://pan.baidu.com/s/1Vkxe-bJ3UlDsWyUiv5adrw?pwd=wc79"}, {"title": "227个黑暗魔法科幻能量冲击碰撞恶龙火焰法术打斗传送门烟雾4K视频素材 Dark Magic Pack", "url": "https://pan.baidu.com/s/1LSGmPWLmhPEl_ZrtlrzDVw?pwd=qp6f"}, {"title": "4K视频素材-50个温暖明亮漂亮镜头光晕耀斑叠加动画 Master Prime Lens Flares", "url": "https://pan.baidu.com/s/1wdBq-baIoAhiiPwyWKYxgw?pwd=6688"}, {"title": "视频素材-1145个二维卡通能量电流烟雾液体闪电线条图形动画(带透明通道)", "url": "https://pan.baidu.com/s/1-NkGtLfn01dwLDzEqkMiRA?pwd=qv8b"}, {"title": "564个大气史诗电影预告片冲击重音上升过渡飞行嗡嗡无损音效", "url": "https://pan.baidu.com/s/1hM36ZKASOgWoySLgPuimAg?pwd=j6ft"}, {"title": "FCPX插件-5000个社交媒体文字标题图形排版动画LUTS调色转场豪华包 Super Creators Pack", "url": "https://pan.baidu.com/s/1ycb5kfMjlVDYoBX4i_HUrg?pwd=kyu7"}, {"title": "3523种大气史诗悬疑紧张环境氛围背景渲染无损音效", "url": "https://pan.baidu.com/s/1GsZxAU-0-pee1PmG3qzKZg?pwd=pva7"}, {"title": "电影短片困境希望背景气氛渲染无损音效 Cinetools Hope", "url": "https://pan.baidu.com/s/1ALq-QlI-qvvMSm1JUsceOQ?pwd=vsgj"}, {"title": "音效-88组夏天宁静夏日季节大自然环境氛围无损音效 Summer", "url": "https://pan.baidu.com/s/1NEyelygiHC1TSCSfwGUEhg?pwd=gzjy"}, {"title": "11套11519个超强声音设计套装音效合集 Sound Design Starter Kit", "url": "https://pan.baidu.com/s/18zaYmI_N8VYz0XV3JdWihw?pwd=ll2z"}, {"title": "1200个智能UI用户界面点击加载交互响应音效 Smart UI", "url": "https://pan.baidu.com/s/13yPU9Nla0KRyQcC_pwmFTw?pwd=dlsk"}, {"title": "音效-70个气泡水滴流动倾倒水花飞溅音效 Water", "url": "https://pan.baidu.com/s/1mvQ-4Y2qpYwmnVm8iB8h7A?pwd=6688"}, {"title": "144组春天春意盎然鸟语花香大自然微风气息春暖花开无损音效 Spring", "url": "https://pan.baidu.com/s/1wAdvSlvRsLOLduDjET9V6g?pwd=h9rq"}, {"title": "音效-276个书籍杂志翻书翻页MG动画无损音效 Books and Magazines", "url": "https://pan.baidu.com/s/1N_6KHNmZvpQm5I929HP6UQ?pwd=drl1"}, {"title": "1070个马头人MG动画常用音效 MisterHorse &#8211; Essential Sound Effects V2", "url": "https://pan.baidu.com/s/16UWBOkSgoV50N5TIDDs9xQ?pwd=evyn"}, {"title": "6000个终极多类型常用电影高品质无损音效包 Cinematic SFX Ultimate Bundle Pack", "url": "https://pan.baidu.com/s/1-HrZmN3d3zEESeHyK5Nmxg?pwd=ltc3"}]`);
+        let currentIndex = 0;
+        let isRunning = false;
+        let isPaused = false;
+        
+        // 初始化
+        function init() {
+            const container = document.getElementById('linksContainer');
+            container.innerHTML = links.map((link, index) => `
+                <div class="link-item pending" id="link-${index}">
+                    <span style="flex: 1;">
+                        <strong>[${index + 1}/${links.length}]</strong> 
+                        ${link.title.substring(0, 60)}...
+                        <br>
+                        <small class="current-link">${link.url}</small>
+                    </span>
+                    <button class="btn btn-primary" onclick="openLink(${index})">打开</button>
+                    <span class="status-icon">⏳</span>
+                </div>
+            `).join('');
+            
+            updateStats();
+        }
+        
+        // 打开单个链接
+        function openLink(index) {
+            const link = links[index];
+            const newWindow = window.open(link.url, '_blank');
+            
+            // 标记为处理中
+            updateLinkStatus(index, 'processing', '🔄 处理中');
+            
+            // 等待用户操作
+            setTimeout(() => {
+                const success = confirm(`链接 ${index + 1} 已打开\\n\\n是否成功保存？\\n\\n点击"确定"=成功\\n点击"取消"=失败/需要验证码`);
+                updateLinkStatus(index, success ? 'success' : 'failed', success ? '✅' : '❌');
+                
+                if (isRunning && !isPaused) {
+                    currentIndex = index + 1;
+                    setTimeout(processNext, 2000);
+                }
+                
+                updateStats();
+            }, 3000);
+        }
+        
+        // 开始批量处理
+        function startBatch() {
+            if (!isRunning) {
+                isRunning = true;
+                isPaused = false;
+                document.getElementById('status').textContent = '运行中...';
+                currentIndex = links.findIndex((link, i) => {
+                    const el = document.getElementById(`link-${i}`);
+                    return el && !el.classList.contains('success');
+                });
+                
+                if (currentIndex === -1) {
+                    alert('✅ 所有链接已处理完成！');
+                    return;
+                }
+                
+                processNext();
+            }
+        }
+        
+        // 处理下一个
+        function processNext() {
+            if (!isRunning || isPaused) return;
+            
+            // 跳过已成功的
+            while (currentIndex < links.length) {
+                const el = document.getElementById(`link-${currentIndex}`);
+                if (el && !el.classList.contains('success')) {
+                    break;
+                }
+                currentIndex++;
+            }
+            
+            if (currentIndex >= links.length) {
+                isRunning = false;
+                document.getElementById('status').textContent = '✅ 完成！';
+                alert('✅ 批量保存完成！');
+                return;
+            }
+            
+            openLink(currentIndex);
+            updateStats();
+        }
+        
+        // 暂停
+        function pauseBatch() {
+            isPaused = !isPaused;
+            document.getElementById('status').textContent = isPaused ? '已暂停' : '运行中...';
+        }
+        
+        // 重置
+        function resetAll() {
+            if (!confirm('确定要重置所有进度吗？')) return;
+            
+            document.querySelectorAll('.link-item').forEach(el => {
+                el.className = 'link-item pending';
+                el.querySelector('.status-icon').textContent = '⏳';
+            });
+            
+            currentIndex = 0;
+            isRunning = false;
+            isPaused = false;
+            document.getElementById('status').textContent = '准备就绪';
+            updateStats();
+        }
+        
+        // 更新链接状态
+        function updateLinkStatus(index, status, icon) {
+            const el = document.getElementById(`link-${index}`);
+            if (el) {
+                el.className = `link-item ${status}`;
+                el.querySelector('.status-icon').textContent = icon;
+            }
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const items = document.querySelectorAll('.link-item');
+            const total = items.length;
+            const success = document.querySelectorAll('.link-item.success').length;
+            const failed = document.querySelectorAll('.link-item.failed').length;
+            const pending = document.querySelectorAll('.link-item.pending').length;
+            const processing = document.querySelectorAll('.link-item.processing').length;
+            
+            document.getElementById('stats').textContent = 
+                `总计: ${total} | 成功: ${success} | 失败: ${failed} | 待处理: ${pending + processing}`;
+            
+            const progress = ((success + failed) / total * 100).toFixed(1);
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+        
+        // 页面加载时初始化
+        window.onload = init;
+    </script>
+</body>
+</html>

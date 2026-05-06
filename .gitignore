@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 进度和日志
+transfer_api_progress.json
+*.log
+
+# 临时文件
+*.tmp
+.DS_Store
+dump_*.html
+
+# Cookie敏感信息
+# （不提交cookies相关文件）
