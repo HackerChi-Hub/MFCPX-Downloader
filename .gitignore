@@ -19,3 +19,4 @@ dump_*.html
 
 # Cookie敏感信息
 # （不提交cookies相关文件）
+.rtk/
